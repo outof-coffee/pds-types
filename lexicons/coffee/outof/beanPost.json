@@ -37,22 +37,8 @@
             "description": "Coffee roaster name or AT-URI (e.g., 'Blue Bottle Coffee' or 'at://did:plc:xyz.../app.bsky.actor.profile/self')"
           },
           "location": {
-            "type": "object",
-            "properties": {
-              "lat": {
-                "type": "number",
-                "minimum": -90,
-                "maximum": 90,
-                "description": "Latitude of location"
-              },
-              "lng": {
-                "type": "number", 
-                "minimum": -180,
-                "maximum": 180,
-                "description": "Longitude of location"
-              }
-            },
-            "required": ["lat", "lng"],
+            "type": "ref",
+            "ref": "#coordinates",
             "description": "GPS coordinates of the location"
           },
           "locationType": {
@@ -80,6 +66,25 @@
         },
         "required": ["text", "createdAt"]
       }
+    },
+    "coordinates": {
+      "type": "object",
+      "required": ["lat", "lng"],
+      "properties": {
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "Latitude of location"
+        },
+        "lng": {
+          "type": "number", 
+          "minimum": -180,
+          "maximum": 180,
+          "description": "Longitude of location"
+        }
+      },
+      "description": "GPS coordinates with latitude and longitude"
     }
   }
 }
