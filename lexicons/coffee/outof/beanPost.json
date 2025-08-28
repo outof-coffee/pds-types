@@ -72,16 +72,12 @@
       "required": ["lat", "lng"],
       "properties": {
         "lat": {
-          "type": "number",
-          "minimum": -90,
-          "maximum": 90,
-          "description": "Latitude of location"
+          "type": "string",
+          "description": "Latitude of location as decimal string (e.g., '37.7749')"
         },
         "lng": {
-          "type": "number", 
-          "minimum": -180,
-          "maximum": 180,
-          "description": "Longitude of location"
+          "type": "string", 
+          "description": "Longitude of location as decimal string (e.g., '-122.4194')"
         }
       },
       "description": "GPS coordinates with latitude and longitude"
