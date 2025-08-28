@@ -1,7 +1,10 @@
 import { Lexicons } from '@atproto/lexicon'
 import * as fs from 'fs'
 import * as path from 'path'
+import * as http from 'http'
+import { URL } from 'url'
 import { PostStorage, CoffeeBeanPost } from './storage'
+import { FirehoseClient } from './firehose'
 
 type FeedItem = {
   post: string // AT URI
@@ -56,6 +59,54 @@ const generateCoffeeFeed = (allPosts: any[], limit: number = 50): FeedItem[] => 
   return pipeline.reduce((data, fn) => fn(data), allPosts)
 }
 
+// HTTP server for AT Protocol feed skeleton endpoint
+const createServer = (storage: PostStorage) => {
+  return http.createServer((req, res) => {
+    const url = new URL(req.url!, `http://${req.headers.host}`)
+    
+    // CORS headers for AT Protocol clients
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    res.setHeader('Content-Type', 'application/json')
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(200)
+      res.end()
+      return
+    }
+
+    // AT Protocol feed skeleton endpoint
+    if (url.pathname === '/xrpc/app.bsky.feed.getFeedSkeleton' && req.method === 'GET') {
+      const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100)
+      const cursor = url.searchParams.get('cursor')
+      
+      // Generate feed skeleton with only coffee bean posts
+      const feedItems = generateCoffeeFeed(storage.getPosts(), limit)
+      
+      const response = {
+        feed: feedItems,
+        cursor: feedItems.length > 0 ? feedItems[feedItems.length - 1].post : undefined
+      }
+      
+      res.writeHead(200)
+      res.end(JSON.stringify(response))
+      return
+    }
+
+    // Health check endpoint
+    if (url.pathname === '/health' && req.method === 'GET') {
+      res.writeHead(200)
+      res.end(JSON.stringify({ status: 'ok', posts: storage.getPostCount() }))
+      return
+    }
+
+    // 404 for other routes
+    res.writeHead(404)
+    res.end(JSON.stringify({ error: 'Not found' }))
+  })
+}
+
 // Initialize and run everything
 async function main() {
   // Initialize storage
@@ -65,32 +116,24 @@ async function main() {
 
   console.log('Database initialized. Current posts:', storage.getPostCount())
 
-  // Add a test post to see the database working
-  // Generate a proper TID (timestamp identifier) for AT Protocol
-  const tid = generateTid()
-  
-  const testPost: CoffeeBeanPost = {
-    $type: 'coffee.outof.beanPost',
-    uri: `at://did:example:alice/coffee.outof.beanPost/${tid}`,
-    cid: 'bafytest123',
-    createdAt: new Date().toISOString(),
-    text: 'Just tried an amazing Ethiopian Yirgacheffe! Bright and floral notes.',
-    beanName: 'Ethiopian Yirgacheffe',
-    origin: 'Ethiopia',
-    roastLevel: 'Light',
-    brewMethod: 'Pour Over',
-    rating: 9,
-    location: { lat: '40.7128', lng: '-74.0060' }
-  }
-
-  const wasAdded = await storage.addPost(testPost)
-  console.log('Test post result:', wasAdded ? 'Added' : 'Already exists')
-  console.log('Total posts:', storage.getPostCount())
-
   // Test with stored data
   console.log('Testing feed generation with stored data:')
   const testFeed = generateCoffeeFeed(storage.getPosts())
   console.log('Generated feed items:', testFeed.length)
+
+  // Start HTTP server
+  const server = createServer(storage)
+  const port = process.env.PORT || 3000
+  
+  // Start firehose client
+  const firehose = new FirehoseClient(storage, lexicons)
+  firehose.start()
+  
+  server.listen(port, () => {
+    console.log(`Feed generator server running on port ${port}`)
+    console.log(`Feed endpoint: http://localhost:${port}/xrpc/app.bsky.feed.getFeedSkeleton`)
+    console.log(`Health check: http://localhost:${port}/health`)
+  })
 }
 
 main().catch(console.error)

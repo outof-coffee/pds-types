@@ -32,6 +32,25 @@ export class PostStorage {
 
   async initialize(): Promise<void> {
     await this.db.read()
+    await this.purgeOldPosts()
+  }
+
+  // Purge posts older than 18 hours
+  private async purgeOldPosts(): Promise<void> {
+    const eighteenHoursAgo = new Date()
+    eighteenHoursAgo.setHours(eighteenHoursAgo.getHours() - 18)
+    
+    const initialCount = this.db.data.posts.length
+    this.db.data.posts = this.db.data.posts.filter(post => {
+      const postDate = new Date(post.createdAt)
+      return postDate >= eighteenHoursAgo
+    })
+    
+    const purgedCount = initialCount - this.db.data.posts.length
+    if (purgedCount > 0) {
+      await this.db.write()
+      console.log(`Purged ${purgedCount} posts older than 18 hours`)
+    }
   }
 
   // Add post only if URI doesn't already exist
