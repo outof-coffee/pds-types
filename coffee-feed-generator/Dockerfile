@@ -13,6 +13,9 @@ RUN npm ci --only=production
 # Copy lexicons first (needed at runtime)
 COPY lexicons/ /lexicons/
 
+# Create data folder
+RUN mkdir -p /app/data
+
 # Copy source code
 COPY src/ ./src/
 COPY tsconfig.json ./
