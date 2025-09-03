@@ -24,15 +24,8 @@ RUN npm install -g typescript && \
     rm -rf src/ tsconfig.json && \
     npm cache clean --force
 
-# Create a non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S feedgen -u 1001
-
-# Change ownership of the app directory and create data folder with proper permissions
-RUN chown -R feedgen:nodejs /app && \
-    mkdir -p /app/data && \
-    chown -R feedgen:nodejs /app/data
-USER feedgen
+# Create data folder with proper permissions
+RUN mkdir -p /app/data
 
 # Expose port 3580
 EXPOSE 3580
