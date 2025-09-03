@@ -11,7 +11,7 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 # Copy lexicons first (needed at runtime)
-COPY ../lexicons/ ./lexicons/
+COPY lexicons/ /lexicons/
 
 # Copy source code
 COPY src/ ./src/

@@ -1,0 +1,86 @@
+{
+  "$type": "com.atproto.lexicon.schema",
+  "lexicon": 1,
+  "id": "coffee.outof.beanPost",
+  "description": "A post about coffee beans and brewing experiences",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A coffee post that can range from casual observations to detailed brewing records",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "properties": {
+          "text": { 
+            "type": "string", 
+            "maxLength": 500,
+            "description": "The main text content of the post"
+          },
+          "createdAt": { 
+            "type": "string", 
+            "format": "datetime",
+            "description": "Timestamp when the post was created"
+          },
+          "beanOrigin": { 
+            "type": "string", 
+            "maxLength": 100,
+            "description": "Origin of the coffee beans (e.g., 'Yirgacheffe, Ethiopia')"
+          },
+          "roastLevel": { 
+            "type": "string", 
+            "enum": ["light", "medium", "dark"],
+            "description": "Roast level of the coffee beans"
+          },
+          "roaster": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Coffee roaster name or AT-URI (e.g., 'Blue Bottle Coffee' or 'at://did:plc:xyz.../app.bsky.actor.profile/self')"
+          },
+          "location": {
+            "type": "ref",
+            "ref": "#coordinates",
+            "description": "GPS coordinates of the location"
+          },
+          "locationType": {
+            "type": "string",
+            "enum": ["roaster", "brewing"],
+            "description": "Type of location - where beans were roasted or where coffee was brewed/consumed"
+          },
+          "brewMethod": { 
+            "type": "string", 
+            "maxLength": 100,
+            "description": "Method and equipment used to brew the coffee (e.g., 'V60', 'French Press with Comandante grinder')"
+          },
+          "rating": { 
+            "type": "integer", 
+            "minimum": 1, 
+            "maximum": 10,
+            "description": "Personal rating of the coffee (1-10 scale)"
+          },
+          "flavorNotes": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 64, "maxGraphemes": 32 },
+            "maxItems": 8,
+            "description": "Flavor notes as tags (e.g., ['chocolate', 'fruity', 'floral'])"
+          }
+        },
+        "required": ["text", "createdAt"]
+      }
+    },
+    "coordinates": {
+      "type": "object",
+      "required": ["lat", "lng"],
+      "properties": {
+        "lat": {
+          "type": "string",
+          "description": "Latitude of location as decimal string (e.g., '37.7749')"
+        },
+        "lng": {
+          "type": "string", 
+          "description": "Longitude of location as decimal string (e.g., '-122.4194')"
+        }
+      },
+      "description": "GPS coordinates with latitude and longitude"
+    }
+  }
+}
