@@ -16,10 +16,10 @@ export class FirehoseClient {
   }
 
   start(): void {
-    console.log('Starting firehose connection to outof.coffee...')
+    console.log('Starting firehose connection to local PDS...')
     
     this.firehose = new Firehose({
-      service: 'wss://outof.coffee',
+      service: 'ws://localhost:3000',
       idResolver: this.idResolver,
       filterCollections: ['coffee.outof.beanPost'],
       handleEvent: async (evt) => {
