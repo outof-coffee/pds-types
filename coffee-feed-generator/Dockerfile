@@ -13,9 +13,6 @@ RUN npm ci --only=production
 # Copy lexicons first (needed at runtime)
 COPY lexicons/ /lexicons/
 
-# Create data folder
-RUN mkdir -p /app/data
-
 # Copy source code
 COPY src/ ./src/
 COPY tsconfig.json ./
@@ -31,8 +28,10 @@ RUN npm install -g typescript && \
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S feedgen -u 1001
 
-# Change ownership of the app directory
-RUN chown -R feedgen:nodejs /app
+# Change ownership of the app directory and create data folder with proper permissions
+RUN chown -R feedgen:nodejs /app && \
+    mkdir -p /app/data && \
+    chown -R feedgen:nodejs /app/data
 USER feedgen
 
 # Expose port 3580
