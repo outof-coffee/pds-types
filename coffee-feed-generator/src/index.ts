@@ -5,6 +5,7 @@ import * as http from 'http'
 import { URL } from 'url'
 import { PostStorage, CoffeeBeanPost } from './storage'
 import { FirehoseClient } from './firehose'
+import { handleTimelineFeed } from './timeline'
 
 type FeedItem = {
   post: string // AT URI
@@ -61,13 +62,13 @@ const generateCoffeeFeed = (allPosts: any[], limit: number = 50): FeedItem[] => 
 
 // HTTP server for AT Protocol feed skeleton endpoint
 const createServer = (storage: PostStorage) => {
-  return http.createServer((req, res) => {
+  return http.createServer(async (req, res) => {
     const url = new URL(req.url!, `http://${req.headers.host}`)
     
     // CORS headers for AT Protocol clients
     res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
     res.setHeader('Content-Type', 'application/json')
 
     if (req.method === 'OPTIONS') {
@@ -76,7 +77,13 @@ const createServer = (storage: PostStorage) => {
       return
     }
 
-    // AT Protocol feed skeleton endpoint
+    // AT Protocol timeline feed endpoint (authenticated)
+    if (url.pathname === '/xrpc/app.bsky.feed.getTimeline' && req.method === 'GET') {
+      await handleTimelineFeed(req, res, storage, url)
+      return
+    }
+
+    // AT Protocol feed skeleton endpoint (public)
     if (url.pathname === '/xrpc/app.bsky.feed.getFeedSkeleton' && req.method === 'GET') {
       const limit = Math.min(parseInt(url.searchParams.get('limit') || '50'), 100)
       const cursor = url.searchParams.get('cursor')
@@ -87,6 +94,29 @@ const createServer = (storage: PostStorage) => {
       const response = {
         feed: feedItems,
         cursor: feedItems.length > 0 ? feedItems[feedItems.length - 1].post : undefined
+      }
+      
+      res.writeHead(200)
+      res.end(JSON.stringify(response))
+      return
+    }
+
+    // Feed generator description endpoint
+    if (url.pathname === '/xrpc/app.bsky.feed.describeFeedGenerator' && req.method === 'GET') {
+      const response = {
+        did: process.env.FEEDGEN_DID || 'did:web:localhost:3580',
+        feeds: [
+          {
+            uri: `at://${process.env.FEEDGEN_DID || 'did:web:localhost:3580'}/app.bsky.feed.generator/coffee-feed`,
+            displayName: 'Coffee Bean Posts',
+            description: 'Fresh coffee posts from around the network - discover new beans, brewing methods, and coffee experiences'
+          },
+          {
+            uri: `at://${process.env.FEEDGEN_DID || 'did:web:localhost:3580'}/app.bsky.feed.generator/coffee-timeline`,
+            displayName: 'Coffee Timeline', 
+            description: 'Personalized timeline of coffee posts from people you follow'
+          }
+        ]
       }
       
       res.writeHead(200)
@@ -123,7 +153,7 @@ async function main() {
 
   // Start HTTP server
   const server = createServer(storage)
-  const port = process.env.PORT || 3000
+  const port = process.env.PORT || 3580
   
   // Start firehose client
   const firehose = new FirehoseClient(storage, lexicons)
@@ -131,7 +161,9 @@ async function main() {
   
   server.listen(port, () => {
     console.log(`Feed generator server running on port ${port}`)
-    console.log(`Feed endpoint: http://localhost:${port}/xrpc/app.bsky.feed.getFeedSkeleton`)
+    console.log(`Public feed endpoint: http://localhost:${port}/xrpc/app.bsky.feed.getFeedSkeleton`)
+    console.log(`Timeline feed endpoint: http://localhost:${port}/xrpc/app.bsky.feed.getTimeline`)
+    console.log(`Feed generator description: http://localhost:${port}/xrpc/app.bsky.feed.describeFeedGenerator`)
     console.log(`Health check: http://localhost:${port}/health`)
   })
 }

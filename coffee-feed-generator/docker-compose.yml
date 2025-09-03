@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  coffee-feed-generator:
+    build: .
+    ports:
+      - "3580:3580"
+    environment:
+      - NODE_ENV=production
+      - PORT=3580
+      # Set these environment variables for production
+      # - FEEDGEN_DID=did:web:your-domain.com
+      # - JWT_SECRET=your-jwt-secret
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3580/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
